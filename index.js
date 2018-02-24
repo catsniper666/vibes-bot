@@ -1,5 +1,6 @@
 const Discord = require("discord.js");
 const sql = require("sqlite")
+const prefix = ">"
 sql.open("./coins")
 sql.open("./fleshlights")
 
