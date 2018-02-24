@@ -105,9 +105,9 @@ bot.on("ready", () => {
 bot.on("message", async function(message) {
     if (message.author.equals(bot.user)) return;
 
-    if (!message.content.startsWith(config.prefix)) return;
+    if (!message.content.startsWith(prefix)) return;
 
-    var args = message.content.substring(config.prefix.length).split(" ");
+    var args = message.content.substring(prefix.length).split(" ");
 
     let user = message.mentions.users.first()
 
