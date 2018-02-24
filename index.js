@@ -1,8 +1,7 @@
 const Discord = require("discord.js");
 const sql = require("sqlite")
 const prefix = ">"
-sql.open("./coins")
-sql.open("./fleshlights")
+sql.open("./database")
 
 var bot = new Discord.Client
 
@@ -237,58 +236,66 @@ bot.on("message", async function(message) {
     message.delete().catch(O_o=>{});
     message.channel.send(`${sayMessage}`);
         break;
+    case "autorole":
+        if (args[1] == "enable") {
+            var autorolecount = await sql.all(`SELECT * FROM autorole WHERE guildid = "${message.guild.id}"`)
+            if (autorolecount = 1) return message.channel.send("this guild already has the autorole enabled")
+            else sql.run(`INSERT INTO autorole (guildid) VALUES (?)`, [message.guild.id])
+            message.channel.send("autorole is enabled")
+        }
+        if (args[1] == "disable") {
+            if (autorolecount = 0) return message.channel.send("this guild already has the autorole disabled")
+            else sql.run(`DELETE FROM autorole (guildid) VALUES (?)`, [message.guild.id])
+            message.channel.send("autorole is disabled")
+        }
+        console.log(autorolecount)
+        break;
     case "daily":
     var discembed = new Discord.RichEmbed()
     .setDescription(`${message.author.username} has just claimed their daily coins :moneybag:`)
-    sql.run("CREATE TABLE IF NOT EXISTS coins (userthing TEXT, cd INTEGER,lottadilds INTEGER )")
-    let cd = await sql.get(`SELECT cd FROM coins WHERE userthing = ${message.author.id}`)
-        if ((cd + 600) < Date.now()) {
-            sql.get(`SELECT * FROM coins WHERE userthing ="${message.author.id}"`).then(row => {
+    let cd = await sql.get(`SELECT cooldown FROM daily WHERE messageauthorid = "${message.author.id}"`)
+    let timer = 10000
+    console.log(cd.cooldown);
+    console.log(Date.now())
+    if (cd.cooldown + timer < Date.now()) {
+            sql.get(`SELECT * FROM daily WHERE messageauthorid ="${message.author.id}"`).then(row => {
                 if (!row) {
-                    sql.run(`INSERT INTO coins (lottadilds, userthing) VALUES (?, ?)`, [100, message.author.id]);
+                    sql.run(`INSERT INTO daily (coins, messageauthorid) VALUES (?, ?)`, [100, message.author.id]);
                 }
                 else {
-                    sql.run(`UPDATE coins SET lottadilds = ${row.lottadilds + 100} WHERE userthing = "${message.author.id}"`);
+                    sql.run(`UPDATE daily SET coins = ${row.coins + 100} WHERE messageauthorid = "${message.author.id}"`);
                 }
-                message.channel.sendEmbed(discembed)
+                message.channel.send(discembed)
             }).catch(() => {
                 console.error      
         })
         }
         else {
-            return message.reply(`this command is not available yet!`)
+            return message.reply(`You have already claimed your daily coins.`)
         }
         console.log(cd)
         break;
     case "balance":
-      if (user) return;
-      sql.run("CREATE TABLE IF NOT EXISTS coins (userthing TEXT, lottadilds INTEGER)")
-      sql.get(`SELECT * FROM coins WHERE userthing ="${message.author.id}"`).then(row => {
-        var mybed = new Discord.RichEmbed()
-        .setColor(0xFFA367)
-        .setDescription(`${message.author.username} has ${row.lottadilds} coins! :moneybag:`)
-        if (!row) return message.channel.send(mybed)
-        message.channel.send(mybed)
-      }).catch(() => {
-        console.error;
-});
-    break;
+        if (args[1]) return
+    sql.get(`SELECT * FROM daily WHERE messageauthorid ="${message.author.id}"`).then(row => {
+         if (!row) return message.reply("sadly you do not have any points yet!");
+         message.reply(`you currently have ${row.coins} coins, good going!`);
+       });
+       break;
     case "buy":
     if (args[1] == "fleshlight") 
-    sql.run("CREATE TABLE IF NOT EXISTS fleshlights (userID TEXT)")
-    sql.get(`SELECT * FROM coins WHERE userthing ="${message.author.id}"`).then(row => {
-        if (row.lottadilds < 500) return;
+    sql.get(`SELECT * FROM daily WHERE messageauthorid ="${message.author.id}"`).then(row => {
+        if (row.coins < 500) return;
         if (!row) return;
-            sql.run(`UPDATE coins SET lottadilds = ${row.lottadilds - 500} WHERE userthing = "${message.author.id}"`);
-    sql.run(`INSERT INTO fleshlights (userID) VALUES (?)`, [message.author.id]);
+            sql.run(`UPDATE daily SET coins = ${row.coins - 500} WHERE messageauthorid = "${message.author.id}"`);
+    sql.run(`INSERT INTO fleshlights (messageauthorid) VALUES (?)`, [message.author.id]);
     message.channel.send(`**${message.author.username}** has just bought *1* fleshlight!`)
     }).catch(() => {
     console.error;
    });
    break;
    case "inventory":
-   sql.run("CREATE TABLE IF NOT EXISTS fleshlights (userID TEXT)")
-   let s =  await sql.all(`SELECT * FROM fleshlights WHERE userID = "${message.author.id}"`);
+   let s =  await sql.all(`SELECT * FROM fleshlights WHERE messageauthorid = "${message.author.id}"`);
    let fc = 0
    for(fc = 0; fc < s.length; fc ++) {}
    var e = new Discord.RichEmbed()
@@ -302,20 +309,20 @@ case "donate":
     return message.channel.send("please mention someone") 
                .then(m => m.delete(2000));
    }
-   sql.run("CREATE TABLE IF NOT EXISTS coins (userthing TEXT, lottadilds INTEGER)")
-   sql.get(`SELECT * FROM coins WHERE userthing ="${message.author.id}"`).then(row => {
+   sql.get(`SELECT * FROM daily WHERE messageauthorid ="${message.author.id}"`).then(row => {
+    if (row.coins < 200) return message.reply("you dont have enough coins")
     if (!row) {
-        sql.run(`DELETE FROM coins (lottadilds, userthing) VALUES (?, ?)`, [200, message.author.id]);
+        sql.run(`DELETE FROM daily (coins, messageauthorid) VALUES (?, ?)`, [200, message.author.id]);
     }
-    else { sql.run(`UPDATE coins SET lottadilds = ${row.lottadilds - 200} WHERE userthing = "${message.author.id}"`);
+    else { 
+        sql.run(`UPDATE daily SET coins = ${row.coins - 200} WHERE messageauthorid = "${message.author.id}"`);
     }
     })
-sql.run("CREATE TABLE IF NOT EXISTS coins (userthing TEXT, lottadilds INTEGER)")
-   sql.get(`SELECT * FROM coins WHERE userthing ="${user.id}"`).then(row => {
+   sql.get(`SELECT * FROM daily WHERE userid ="${user.id}"`).then(row => {
     if (!row) {
-        sql.run(`INSERT INTO coins (lottadilds, userthing) VALUES (?, ?)`, [200, user.id]);
-    }
-    else { sql.run(`UPDATE coins SET lottadilds = ${row.lottadilds + 200} WHERE userthing = "${user.id}"`);
+        sql.run(`INSERT INTO daily (coins, userid) VALUES (?, ?)`, [200, user.id]);
+    }  
+    else { sql.run(`UPDATE daily SET coins = ${row.coins + 200} WHERE userid = "${user.id}"`);
         message.channel.send(`${message.author.username} donated 200 coins to ${user.username}`)
     }
     })
