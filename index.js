@@ -236,23 +236,10 @@ bot.on("message", async function(message) {
     message.delete().catch(O_o=>{});
     message.channel.send(`${sayMessage}`);
         break;
-    case "autorole":
-        if (args[1] == "enable") {
-            var autorolecount = await sql.all(`SELECT * FROM autorole WHERE guildid = "${message.guild.id}"`)
-            if (autorolecount = 1) return message.channel.send("this guild already has the autorole enabled")
-            else sql.run(`INSERT INTO autorole (guildid) VALUES (?)`, [message.guild.id])
-            message.channel.send("autorole is enabled")
-        }
-        if (args[1] == "disable") {
-            if (autorolecount = 0) return message.channel.send("this guild already has the autorole disabled")
-            else sql.run(`DELETE FROM autorole (guildid) VALUES (?)`, [message.guild.id])
-            message.channel.send("autorole is disabled")
-        }
-        console.log(autorolecount)
-        break;
     case "daily":
     var discembed = new Discord.RichEmbed()
     .setDescription(`${message.author.username} has just claimed their daily coins :moneybag:`)
+    sql.run("CREATE TABLE IF NOT EXISTS daily (messageauthorid TEXT, cooldown INTEGER, coins INTEGER, userid TEXT)")
     let cd = await sql.get(`SELECT cooldown FROM daily WHERE messageauthorid = "${message.author.id}"`)
     let timer = 10000
     console.log(cd.cooldown);
@@ -276,6 +263,7 @@ bot.on("message", async function(message) {
         console.log(cd)
         break;
     case "balance":
+        sql.run("CREATE TABLE IF NOT EXISTS daily (messageauthorid TEXT, cooldown INTEGER, coins INTEGER, userid TEXT)")
         if (args[1]) return
     sql.get(`SELECT * FROM daily WHERE messageauthorid ="${message.author.id}"`).then(row => {
          if (!row) return message.reply("sadly you do not have any points yet!");
@@ -283,11 +271,13 @@ bot.on("message", async function(message) {
        });
        break;
     case "buy":
-    if (args[1] == "fleshlight") 
+    if (args[1] == "fleshlight")
+    sql.run("CREATE TABLE IF NOT EXISTS daily (messageauthorid TEXT, cooldown INTEGER, coins INTEGER, userid TEXT)")
     sql.get(`SELECT * FROM daily WHERE messageauthorid ="${message.author.id}"`).then(row => {
         if (row.coins < 500) return;
         if (!row) return;
             sql.run(`UPDATE daily SET coins = ${row.coins - 500} WHERE messageauthorid = "${message.author.id}"`);
+    sql.run("CREATE TABLE IF NOT EXISTS fleshlights (messageauthorid TEXT)")
     sql.run(`INSERT INTO fleshlights (messageauthorid) VALUES (?)`, [message.author.id]);
     message.channel.send(`**${message.author.username}** has just bought *1* fleshlight!`)
     }).catch(() => {
@@ -295,6 +285,7 @@ bot.on("message", async function(message) {
    });
    break;
    case "inventory":
+   sql.run("CREATE TABLE IF NOT EXISTS fleshlights (messageauthorid TEXT)")
    let s =  await sql.all(`SELECT * FROM fleshlights WHERE messageauthorid = "${message.author.id}"`);
    let fc = 0
    for(fc = 0; fc < s.length; fc ++) {}
@@ -305,6 +296,7 @@ bot.on("message", async function(message) {
    message.channel.send(e)
    break;
 case "donate":
+   sql.run("CREATE TABLE IF NOT EXISTS daily (messageauthorid TEXT, cooldown INTEGER, coins INTEGER, userid TEXT)")
    if (!user) {
     return message.channel.send("please mention someone") 
                .then(m => m.delete(2000));
