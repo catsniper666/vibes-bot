@@ -3,14 +3,7 @@ const sql = require("sqlite")
 sql.open("./coins")
 sql.open("./fleshlights")
 
-var bot = new Discord.Client({
-    ownerID: config.ownerID,
-    prefix: config.prefix,
-    clientOptions: {
-      fetchAllMembers: false,
-    },
-    cmdLogging: false,
-});
+var bot = new Discord.Client
 
 var lcalc = [
     " 11% - this relationship might not work out very well.... :sob:",
