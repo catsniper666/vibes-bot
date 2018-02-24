@@ -181,14 +181,14 @@ bot.on("message", async function(message) {
         .setFooter(`Requested by: ` + message.author.username+ " #" + message.author.discriminator, message.author.avatarURL)
         message.channel.sendEmbed(minfo)
         break;   
-    case "cmods":
+    case "s":
         let text = args.slice(1).join(' ');
-        let staffchannel = message.guild.channels.find('name', 'staff');
-        if (!text) return message.reply("You must enter a text")
-        if (!staffchannel) return message.reply("There's no `staff` channel in this guild")
+        let staffchannel = message.guild.channels.find('name', 'suggestions');
+        if (!text) return 
+        if (!staffchannel) return 
         var txtembed = new Discord.RichEmbed()
-        .addField(`**${message.author.username}**`, `Would like to say ${text}`)
-        .addField('**User ID**', `${message.author.id}`)
+        .addField(`**${message.author.username}**`, `ID: ${message.author.id}`)
+        .addField(`Suggestion:`, `${text}`)
         return message.guild.channels.get(staffchannel.id).send(txtembed);
         break;
     case "contactmods":
