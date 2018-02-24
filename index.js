@@ -330,4 +330,4 @@ sql.run("CREATE TABLE IF NOT EXISTS coins (userthing TEXT, lottadilds INTEGER)")
 }
 });
 
-bot.login(config.token)
+bot.login(process.env.BOT_TOKEN)
