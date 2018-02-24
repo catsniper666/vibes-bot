@@ -2,7 +2,6 @@ const Discord = require("discord.js");
 const sql = require("sqlite")
 sql.open("./coins")
 sql.open("./fleshlights")
-const config = require("./settings.json")
 
 var bot = new Discord.Client({
     ownerID: config.ownerID,
