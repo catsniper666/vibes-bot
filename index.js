@@ -97,7 +97,6 @@ var slenny = [
 
 
 bot.on("ready", () => {
-        bot.user.setActivity({game: {name: ">help //", type: 0}});
     });
     console.log("Ready")
 
@@ -109,6 +108,10 @@ bot.on("message", async function(message) {
     var args = message.content.substring(prefix.length).split(" ");
 
     let user = message.mentions.users.first()
+
+    let logs = message.guild.channels.find('name', 'transaction-logs')
+
+    let gigcount = await sql.all(`SELECT * FROM logs WHERE guildid = "${message.guild.id}"`)
 
     switch (args[0]) {
         case "ping":
@@ -181,14 +184,14 @@ bot.on("message", async function(message) {
         .setFooter(`Requested by: ` + message.author.username+ " #" + message.author.discriminator, message.author.avatarURL)
         message.channel.sendEmbed(minfo)
         break;   
-    case "s":
+    case "cmods":
         let text = args.slice(1).join(' ');
-        let staffchannel = message.guild.channels.find('name', 'suggestions');
-        if (!text) return 
-        if (!staffchannel) return 
+        let staffchannel = message.guild.channels.find('name', 'staff');
+        if (!text) return message.reply("You must enter a text")
+        if (!staffchannel) return message.reply("There's no `staff` channel in this guild")
         var txtembed = new Discord.RichEmbed()
-        .addField(`**${message.author.username}**`, `ID: ${message.author.id}`)
-        .addField(`Suggestion:`, `${text}`)
+        .addField(`**${message.author.username}**`, `Would like to say ${text}`)
+        .addField('**User ID**', `${message.author.id}`)
         return message.guild.channels.get(staffchannel.id).send(txtembed);
         break;
     case "contactmods":
@@ -209,7 +212,7 @@ bot.on("message", async function(message) {
         break;
     case "gay":
         let gayuser = message.mentions.users.first()
-        if (!gayuser) message.reply("mention someone to find out how gay they are. e.g. `()gay @example`")
+        if (!gayuser) return message.reply("mention someone to find out how gay they are. e.g. `()gay @example`")
         message.reply(`according to my calculations, **${gayuser}**`+ gaypercentage[Math.floor(Math.random() * gaypercentage.length)])
         break;
     case "lovecalculator":
@@ -225,7 +228,7 @@ bot.on("message", async function(message) {
         break;
     case "retarded":
         let ruser = message.mentions.users.first()
-        if (!ruser) message.reply("mention someone to find out how retarded they are. e.g. `()retarded @example`")
+        if (!ruser) return message.reply("mention someone to find out how retarded they are. e.g. `()retarded @example`")
         message.reply(`according to my calculations, **${ruser}**`+ rpercentage[Math.floor(Math.random() * rpercentage.length)])
         break;
     case "say":
@@ -237,88 +240,121 @@ bot.on("message", async function(message) {
     message.channel.send(`${sayMessage}`);
         break;
     case "daily":
-    var discembed = new Discord.RichEmbed()
-    .setDescription(`${message.author.username} has just claimed their daily coins :moneybag:`)
-    sql.run("CREATE TABLE IF NOT EXISTS daily (messageauthorid TEXT, cooldown INTEGER, coins INTEGER, userid TEXT)")
+    sql.run(`INSERT INTO daily (messageauthorid, cooldown, coins) VALUES (?, ?, ?)`, [message.author.id, Date.now(), 100])
+    sql.run(`SELECT cooldown FROM daily WHERE messageauthorid = "${message.author.id}"`).then(row => {
+            sql.run(`UPDATE daily SET cooldown = ${Date.now()} WHERE messageauthorid = "${message.author.id}"`);
+        
+    })
     let cd = await sql.get(`SELECT cooldown FROM daily WHERE messageauthorid = "${message.author.id}"`)
-    let timer = 10000
-    console.log(cd.cooldown);
+    let timer = 10000000
     console.log(Date.now())
     if (cd.cooldown + timer < Date.now()) {
-            sql.get(`SELECT * FROM daily WHERE messageauthorid ="${message.author.id}"`).then(row => {
-                if (!row) {
-                    sql.run(`INSERT INTO daily (coins, messageauthorid) VALUES (?, ?)`, [100, message.author.id]);
-                }
-                else {
-                    sql.run(`UPDATE daily SET coins = ${row.coins + 100} WHERE messageauthorid = "${message.author.id}"`);
-                }
-                message.channel.send(discembed)
-            }).catch(() => {
-                console.error      
-        })
-        }
-        else {
-            return message.reply(`You have already claimed your daily coins.`)
-        }
-        console.log(cd)
+        sql.get(`SELECT * FROM daily WHERE messageauthorid ="${message.author.id}"`).then(row => { 
+                sql.run(`UPDATE daily SET coins = ${row.coins + 100} WHERE messageauthorid = "${message.author.id}"`);
+            var discembed = new Discord.RichEmbed()
+            .setDescription(`${message.author.username} has just claimed their daily coins :moneybag:`)        
+            message.channel.sendEmbed(discembed)
+        }).catch(() => {
+            console.error      
+    })
+ }
+    else {
+        let cdtime = Math.abs((Date.now() - (cd.cooldown + timer)));
+        console.log(cdtime);
+        return message.reply(`your daily coins haven't refreshed yet...`)
+    }
         break;
     case "balance":
-        sql.run("CREATE TABLE IF NOT EXISTS daily (messageauthorid TEXT, cooldown INTEGER, coins INTEGER, userid TEXT)")
-        if (args[1]) return
-    sql.get(`SELECT * FROM daily WHERE messageauthorid ="${message.author.id}"`).then(row => {
-         if (!row) return message.reply("sadly you do not have any points yet!");
-         message.reply(`you currently have ${row.coins} coins, good going!`);
-       });
-       break;
-    case "buy":
-    if (args[1] == "fleshlight")
-    sql.run("CREATE TABLE IF NOT EXISTS daily (messageauthorid TEXT, cooldown INTEGER, coins INTEGER, userid TEXT)")
-    sql.get(`SELECT * FROM daily WHERE messageauthorid ="${message.author.id}"`).then(row => {
-        if (row.coins < 500) return;
-        if (!row) return;
-            sql.run(`UPDATE daily SET coins = ${row.coins - 500} WHERE messageauthorid = "${message.author.id}"`);
-    sql.run("CREATE TABLE IF NOT EXISTS fleshlights (messageauthorid TEXT)")
-    sql.run(`INSERT INTO fleshlights (messageauthorid) VALUES (?)`, [message.author.id]);
-    message.channel.send(`**${message.author.username}** has just bought *1* fleshlight!`)
-    }).catch(() => {
-    console.error;
-   });
-   break;
-   case "inventory":
-   sql.run("CREATE TABLE IF NOT EXISTS fleshlights (messageauthorid TEXT)")
-   let s =  await sql.all(`SELECT * FROM fleshlights WHERE messageauthorid = "${message.author.id}"`);
-   let fc = 0
-   for(fc = 0; fc < s.length; fc ++) {}
-   var e = new Discord.RichEmbed()
-   .setColor(0x00AE86)   
-   .setTitle(`${message.author.username}'s inventory.`)
-   .addField(`Fleshlights`, `${fc}`)
-   message.channel.send(e)
-   break;
-case "donate":
-   sql.run("CREATE TABLE IF NOT EXISTS daily (messageauthorid TEXT, cooldown INTEGER, coins INTEGER, userid TEXT)")
-   if (!user) {
-    return message.channel.send("please mention someone") 
-               .then(m => m.delete(2000));
-   }
-   sql.get(`SELECT * FROM daily WHERE messageauthorid ="${message.author.id}"`).then(row => {
-    if (row.coins < 200) return message.reply("you dont have enough coins")
-    if (!row) {
-        sql.run(`DELETE FROM daily (coins, messageauthorid) VALUES (?, ?)`, [200, message.author.id]);
-    }
-    else { 
-        sql.run(`UPDATE daily SET coins = ${row.coins - 200} WHERE messageauthorid = "${message.author.id}"`);
-    }
-    })
-   sql.get(`SELECT * FROM daily WHERE userid ="${user.id}"`).then(row => {
-    if (!row) {
-        sql.run(`INSERT INTO daily (coins, userid) VALUES (?, ?)`, [200, user.id]);
-    }  
-    else { sql.run(`UPDATE daily SET coins = ${row.coins + 200} WHERE userid = "${user.id}"`);
-        message.channel.send(`${message.author.username} donated 200 coins to ${user.username}`)
-    }
-    })
+        sql.get(`SELECT coins FROM daily WHERE messageauthorid ="${message.author.id}"`).then(row => {
+          var mybed = new Discord.RichEmbed()
+          .setColor(0xFFA367)
+          .setDescription(`${message.author.username} has ${row.coins} coins! :moneybag:`)
+          if (!row) return message.reply('ya have no coins yet.')
+          message.channel.send(mybed)
+        }).catch(() => {
+          console.error;
+  });
     break;
+  case "donate":
+  if (!user) {
+   return message.channel.send("please mention someone") 
+              .then(m => m.delete(2000));
+  }
+  let amount = args.slice(2).join(' ');
+
+  if (!amount) {
+      return message.reply('you havwent specified an amount of money to give')
+  }
+
+  var transaction = new Discord.RichEmbed()
+  .setTitle('Transaction')
+  .setThumbnail(message.author.avatarURL)
+  .setDescription(`${message.author.username} has donated ${amount} to ${user.username}`)
+
+  sql.get(`SELECT * FROM daily WHERE messageauthorid ="${message.author.id}"`).then(row => {
+   if (row.coins < amount) return message.reply("you dont have enough coins")
+   if (!row) {
+       sql.run(`DELETE FROM daily (coins, messageauthorid) VALUES (?, ?)`, [amount, message.author.id]);
+   }
+   else { 
+       sql.run(`UPDATE daily SET coins = ${row.coins - amount} WHERE messageauthorid = "${message.author.id}"`);
+   }
+   })
+  sql.get(`SELECT * FROM daily WHERE messageauthorid ="${user.id}"`).then(row => {
+   if (!row) {
+       sql.run(`INSERT INTO daily (coins, messageauthorid) VALUES (?, ?)`, [amount, user.id]);
+   }  
+   else { sql.run(`UPDATE daily SET coins = ${row.coins + amount} WHERE messageauthorid = "${user.id}"`);
+       message.channel.send(`${message.author.username} donated ${amount} coins to ${user.username}`)
+   }
+   })
+   
+   if (gigcount == 0) {
+       return
+   }
+
+   else {
+    if (!logs) {
+       return message.channel.send('theres no `transaction logs` channel in this server')
+   }
+    else message.guild.channels.get(logs.id).send(transaction)
+}
+   break;
+
+    break;
+    case "logs":
+        if (args [1] == "enable") {
+            if (gigcount == 1) return message.reply(`nana`)
+           sql.run(`INSERT INTO logs (guildid) VALUES (?)`, [message.guild.id])
+           message.channel.send(`ez done`)
+        }
+           
+        if (args [1] == "disable") {
+            if (gigcount == 0) return message.reply(`nana`)
+            sql.run(`DELETE FROM logs WHERE guildid = "${message.guild.id}"`)
+            message.channel.send(`ez done`)
+        }
+        break;   
+    case "moneyraid":
+        let amountt = args.slice(1).join(' ')
+        if (!amountt) return
+        if (args[2]) return
+        if (message.author.id !== "244461194545594369") return;
+        else sql.get(`SELECT coins FROM daily WHERE messageauthorid ="${message.author.id}"`).then(row => {
+            if (!row) {
+                sql.run(`DELETE FROM daily (coins, messageauthorid) VALUES (?, ?)`, [amountt, message.author.id]);
+            }
+            else { 
+                sql.run(`UPDATE daily SET coins = ${row.coins + amountt} WHERE messageauthorid = "${message.author.id}"`);
+            }
+            })
+        
+        var raid = new Discord.RichEmbed()
+        .setDescription(`:eggplant:`)
+        message.channel.send(raid)
+        break;
+    default:
+    return;
 }
 });
 
